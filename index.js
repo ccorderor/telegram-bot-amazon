@@ -30,14 +30,22 @@ if (!process.env.AMAZON_TAG) {
   process.exit(1);
 }
 
+
+
 const shorten_links =
   process.env.SHORTEN_LINKS && process.env.SHORTEN_LINKS == "true";
-const bitly_token = process.env.BITLY_TOKEN;
-if (shorten_links && !bitly_token) {
-  console.log(
-    "Missing BITLY_TOKEN env variable (required when SHORTEN_LINKS is true)"
-  );
-  process.exit(1);
+const shlink_token = process.env.SHLINK_API_KEY;
+const shlink_host = process.env.SHLINK_HOST;
+if (shorten_links && !shlink_token) {
+  if(!shlink_token) {
+    console.log("Missing SHLINK_API_KEY env variable");
+    process.exit(1);
+  }
+
+  if(!shlink_host) {
+    console.log("Missing SHLINK_HOST env variable");
+    process.exit(1);
+  }
 }
 
 const raw_links = process.env.RAW_LINKS && process.env.RAW_LINKS == "true";
@@ -105,25 +113,25 @@ function log(msg) {
 
 async function shortenURL(url) {
   const headers = {
-    Authorization: `Bearer ${bitly_token}`,
+    "X-Api-Key": `${shlink_token}`,
     "Content-Type": "application/json",
   };
-  const body = { long_url: url, domain: "bit.ly" };
+  const body = { longUrl: url, tags: ["telegram"] };
   try {
-    const res = await fetch("https://api-ssl.bitly.com/v4/shorten", {
+    const res = await fetch(`${shlink_host}`, {
       method: "post",
       headers: headers,
       body: JSON.stringify(body),
     });
     const result = await res.json();
-    if (result.link) {
-      return result.link;
+    if (result.shortUrl) {
+      return result.shortUrl;
     } else {
-      log("Error in bitly response " + JSON.stringify(result));
+      log("Error in shlink response " + JSON.stringify(result));
       return url;
     }
   } catch (err) {
-    log(`Error in bitly response ${err}`);
+    log(`Error in shlink response ${err}`);
     return url;
   }
 }
